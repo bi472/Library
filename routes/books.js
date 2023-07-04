@@ -2,7 +2,6 @@ const express = require('express')
 const router = express.Router()
 const fileMulter = require('../middleware/file')
 const axios = require('axios');
-const { v4: uuid } = require('uuid');
 const Book = require('../schemas/bookSchema')
 
 const COUNTER_URL = process.env.counterURL
