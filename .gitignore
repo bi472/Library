@@ -1,4 +1,5 @@
 .env
-node_modules
-counter-app\node_modules
-counter-app\data\dump.rdb
+node_modules/
+counter-app/node_modules/
+counter-app/data/
+data
