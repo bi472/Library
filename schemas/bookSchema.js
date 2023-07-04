@@ -3,7 +3,7 @@ const { v4: uuidv4 } = require('uuid');
 const { Schema } = mongoose;
 
 const bookSchema = new Schema({
-  id: { type: String, default: uuidv4, unique: true },
+  _id: { type: String, default: uuidv4 },
   title: { type: String, required: true },
   description: String,
   authors: String,

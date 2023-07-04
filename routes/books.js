@@ -5,7 +5,7 @@ const axios = require('axios');
 const { v4: uuid } = require('uuid');
 const Book = require('../schemas/bookSchema')
 
-const COUNTER_URL = `http://counter-app:3002`
+const COUNTER_URL = process.env.counterURL
 
 async function counterFetch(bookId) {
     const url = `${COUNTER_URL}/counter/${bookId}/incr`;
