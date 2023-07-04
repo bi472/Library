@@ -1,0 +1,30 @@
+version: '3'
+services:
+  library-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - '3000:3000'
+    volumes:
+      - './books:/app/books'
+    depends_on:
+      - counter-app
+      
+  counter-app:
+    build: ./counter-app/.
+    environment:
+      - PORT=3002
+      - REDIS_URL=redis://storage
+    ports:
+      - 3002:3002
+    volumes:
+      - ./counter-app/data:/data
+    working_dir: /app
+    command: npm start
+    depends_on:
+      - storage
+  storage:
+    image: redis
+    volumes:
+      - ./counter-app/data:/data
