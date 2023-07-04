@@ -10,6 +10,14 @@ services:
       - './books:/app/books'
     depends_on:
       - counter-app
+      - mongodb
+    
+  mongodb:
+    image: mongo
+    ports:
+      - '27017:27017'
+    volumes:
+      - './data:/data/db'
       
   counter-app:
     build: ./counter-app/.

@@ -1,5 +1,5 @@
 .env
 node_modules/
 counter-app/node_modules/
-counter-app/data/
+counter-app/data
 data
