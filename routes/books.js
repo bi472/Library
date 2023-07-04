@@ -2,36 +2,8 @@ const express = require('express')
 const router = express.Router()
 const fileMulter = require('../middleware/file')
 const axios = require('axios');
-
 const { v4: uuid } = require('uuid');
-
-class Book {
-    constructor(
-        id = uuid(),
-        title = "",
-        description = "",
-        authors = "",
-        favorite = "",
-        fileCover = "",
-        fileName = "",
-        fileBook = "") {
-        this.id = id
-        this.title = title
-        this.description = description
-        this.authors = authors
-        this.favorite = favorite
-        this.fileCover = fileCover
-        this.fileName = fileName
-        this.fileBook = fileBook
-    }
-}
-
-const stor = {
-    book: [
-        new Book(),
-        new Book(),
-    ],
-};
+const Book = require('../schemas/bookSchema')
 
 const COUNTER_URL = `http://counter-app:3002`
 
@@ -56,117 +28,118 @@ async function counterFetch(bookId) {
         });
 }
 
-router.get('', (req, res) => {
-    const { book } = stor;
-    res.json(book)
-})
-
-router.get('/:id', async (req, res) => {
-    const { book } = stor
-    const { id } = req.params
-    const idx = book.findIndex(el => el.id === id)
-
-    if (idx !== -1) {
-        counterFetch(id)
-            .then((counterValue) => {
-                console.log(counterValue);
-                res.json({ bookData: book[idx], counterValue });
-            })
-            .catch((error) => {
-                console.log(error);
-            });
+router.get('', async (req, res) => {
+    try {
+      const books = await Book.find();
+      res.json(books);
+    } catch (error) {
+      console.error('Error retrieving the list of books:', error);
+      res.status(500).json('Server Error');
     }
-    else {
-        res.status(404)
-        res.json('404 || Page not found')
+  });
+  
+  router.get('/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const book = await Book.findById(id);
+      
+      if (book) {
+        const counterValue = await counterFetch(id);
+        console.log(counterValue);
+        res.json({ bookData: book, counterValue });
+      } else {
+        res.status(404).json('404 || Page not found');
+      }
+    } catch (error) {
+      console.error('Error retrieving book information:', error);
+      res.status(500).json('Server Error');
     }
-})
-
-router.post('', (req, res) => {
-    const { book } = stor
-    const { title, description } = req.body
-
-    const newBook = new Book(uuid(), title, description)
-    book.push(newBook)
-
-    res.status(201)
-    res.json(newBook)
-}
-)
-
-router.post('/:id/upload-book',
-    fileMulter.single('cover-book'),
-    (req, res) => {
-        const { book } = stor
-        const { id } = req.params
-        const idx = book.findIndex(el => el.id === id)
-        if (req.file) {
-            const { filename } = req.file
-
-            if (idx !== -1) {
-                book[idx].fileBook = filename
-                res.json(`${filename}`)
-            }
-            else {
-                res.status(404)
-                res.json('404 || Page not found')
-            }
+  });
+  
+  router.post('', async (req, res) => {
+    try {
+      const { title, description } = req.body;
+      const newBook = new Book({ title, description });
+      const savedBook = await newBook.save();
+      res.status(201).json(savedBook);
+    } catch (error) {
+      console.error('Error creating a book:', error);
+      res.status(500).json('Server Error');
+    }
+  });
+  
+  router.post('/:id/upload-book', fileMulter.single('cover-book'), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const book = await Book.findById(id);
+  
+      if (req.file) {
+        const { filename } = req.file;
+  
+        if (book) {
+          book.fileCover = filename;
+          await book.save();
+          res.json(filename);
+        } else {
+          res.status(404).json('404 || Page not found');
         }
-        res.json('Something went wrong.')
+      } else {
+        res.json('Something went wrong.');
+      }
+    } catch (error) {
+      console.error('Error uploading book cover:', error);
+      res.status(500).json('Server Error');
     }
-)
-
-router.get('/:id/download', (req, res) => {
-    const { book } = stor
-    const { id } = req.params
-    const idx = book.findIndex(el => el.id === id)
-
-    if (idx !== -1) {
-        const file = `./public/books/${book[idx].fileBook}`
-        res.download(file)
+  });
+  
+  router.get('/:id/download', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const book = await Book.findById(id);
+  
+      if (book) {
+        const file = `./public/books/${book.fileCover}`;
+        res.download(file);
+      } else {
+        res.status(404).json('404 || Page not found');
+      }
+    } catch (error) {
+      console.error('Error downloading book file:', error);
+      res.status(500).json('Server Error');
     }
-    else {
-        res.status(404)
-        res.json('404 || Page not found')
+  });
+  
+  router.put('/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { title, description } = req.body;
+      const book = await Book.findByIdAndUpdate(id, { title, description }, { new: true });
+  
+      if (book) {
+        res.json(book);
+      } else {
+        res.status(404).json('404 || Page not found');
+      }
+    } catch (error) {
+      console.error('Error updating book information:', error);
+      res.status(500).json('Server Error');
     }
-}
-)
-
-router.put('/:id', (req, res) => {
-    const { book } = stor
-    const { title, description } = req.body
-    const { id } = req.params
-    const idx = book.findIndex(el => el.id === id)
-
-    if (idx !== -1) {
-        book[idx] = {
-            ...book[idx],
-            title,
-            description,
-        }
-
-        res.json(book[idx])
+  });
+  
+  router.delete('/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const book = await Book.findByIdAndRemove(id);
+  
+      if (book) {
+        res.json('ok');
+      } else {
+        res.status(404).json('404 || Page not found');
+      }
+    } catch (error) {
+      console.error('Error deleting a book:', error);
+      res.status(500).json('Server Error');
     }
-    else {
-        res.status(404)
-        res.json('404 || Page not found')
-    }
-})
-
-router.delete('/:id', (req, res) => {
-    const { book } = stor
-    const { id } = req.params
-    const idx = book.findIndex(el => el.id === id)
-
-    console.log(idx)
-
-    if (idx !== -1) {
-        book.splice(idx, 1)
-        res.json('ok')
-    } else {
-        res.status(404)
-        res.json("404 || Page not found")
-    }
-})
+  });
 
 module.exports = router
